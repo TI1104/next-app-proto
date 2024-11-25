@@ -6,7 +6,7 @@ export default function Geofence() {
   const [inGeofence, setInGeofence] = useState(false);
 
   // ジオフェンスの設定
-  const targetLatitude = 36.700160; // 緯度 
+  const targetLatitude = 36.703437; // 緯度 
   const targetLongitude = 137.101312; // 経度
   const targetRadius = 0.1; // 半径 0.1km (100m)
 
