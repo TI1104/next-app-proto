@@ -8,7 +8,7 @@ export default function Geofence() {
   // ジオフェンスの設定
   const targetLatitude = 36.703437; // 緯度 
   const targetLongitude = 137.101312; // 経度
-  const targetRadius = 0.1; // 半径 0.1km (100m)
+  const targetRadius = 1; // 半径 0.1km (100m)
 
   // 距離計算関数
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
