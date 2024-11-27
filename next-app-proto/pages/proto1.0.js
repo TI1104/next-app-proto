@@ -6,9 +6,9 @@ export default function Geofence() {
   const [inGeofence, setInGeofence] = useState(false);
 
   // ジオフェンスの設定
-  const targetLatitude = 36.703437; // 緯度
+  const targetLatitude = 36.703437; // 緯度 
   const targetLongitude = 137.101312; // 経度
-  const targetRadius = 0.1; // 半径 0.1km (100m)
+  const targetRadius = 0.5; // 半径 0.1km (100m)
 
   // 距離計算関数
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -64,12 +64,7 @@ export default function Geofence() {
 
   return (
     <div className={styles.container}>
-      {/* Conditionally render the image or the message */}
-      {message ? (
-        <p className={styles.message}>{message}</p>
-      ) : (
-        <img src="/coco.jpg" alt="Coco" className={styles.image} />
-      )}
+      {message && <p className={styles.message}>{message}</p>}
     </div>
   );
 }
