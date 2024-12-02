@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useMessage } from "../../context/MessageContext"; // MessageContext をインポート
+import { useMessage } from "../../context/MessageContext";
 import styles from "../../styles/Home.module.css";
+import { controlSwitchBotBot } from "./switchbotControl";
 
 export default function Geofence() {
-  const { message: dynamicMessage } = useMessage(); // コンテキストからメッセージを取得
+  const { message: dynamicMessage } = useMessage();
   const [message, setMessage] = useState("");
   const [inGeofence, setInGeofence] = useState(false);
 
@@ -27,7 +28,7 @@ export default function Geofence() {
   useEffect(() => {
     if (navigator.geolocation) {
       const watcher = navigator.geolocation.watchPosition(
-        (position) => {
+        async (position) => {
           const { latitude, longitude } = position.coords;
           const distance = calculateDistance(
             latitude,
@@ -37,12 +38,18 @@ export default function Geofence() {
           );
 
           if (distance <= targetRadius && !inGeofence) {
-            setMessage(dynamicMessage); // 動的なメッセージを設定
+            setMessage(dynamicMessage);
             setInGeofence(true);
 
+            // バイブレーション
             if (navigator.vibrate) {
               navigator.vibrate([200, 100, 200]);
             }
+
+            // SwitchBot Botの操作
+            const deviceMac = "D3:6E:6C:CA:81:2E";
+            await controlSwitchBotBot(deviceMac, "press");
+
           } else if (distance > targetRadius && inGeofence) {
             setMessage("");
             setInGeofence(false);
@@ -59,7 +66,7 @@ export default function Geofence() {
     } else {
       console.error("このブラウザはGeolocation APIをサポートしていません。");
     }
-  }, [inGeofence, dynamicMessage]); // dynamicMessage を依存に追加
+  }, [inGeofence, dynamicMessage]);
 
   return (
     <div className={styles.container}>
@@ -68,6 +75,8 @@ export default function Geofence() {
       ) : (
         <img src="/coco.jpg" alt="Coco" className={styles.image} />
       )}
+      {/* ユーザー操作でBluetoothスキャンを開始 */}
+      <button id="startBluetoothBtn">Start Bluetooth Scanning</button>
     </div>
   );
 }
