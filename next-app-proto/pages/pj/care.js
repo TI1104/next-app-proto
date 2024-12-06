@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
-import { useMessage } from "../../context/MessageContext";
+import { ref, onValue } from "firebase/database"; // Firebase Realtime Database の関数
+import { database } from "../../lib/firebaseConfig"; // Firebase Config のインポート
 import styles from "../../styles/Home.module.css";
-import { controlSwitchBotBot } from "./switchbotControl";
 
 export default function Geofence() {
-  const { message: dynamicMessage } = useMessage();
-  const [message, setMessage] = useState("");
-  const [inGeofence, setInGeofence] = useState(false);
+  const [message, setMessage] = useState(""); // Firebaseからのメッセージを管理
+  const [inGeofence, setInGeofence] = useState(false); // ジオフェンスの状態を管理
 
-  const targetLatitude = 36.703437;
-  const targetLongitude = 137.101312;
-  const targetRadius = 1.0;
+  // ターゲット地点と半径
+  const targetLatitude = 36.703437; // ターゲット地点の緯度
+  const targetLongitude = 137.101312; // ターゲット地点の経度
+  const targetRadius = 1.0; // 半径（km）
 
+  // 距離計算関数
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371;
+    const R = 6371; // 地球の半径（km）
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
@@ -22,14 +23,31 @@ export default function Geofence() {
         Math.cos((lat2 * Math.PI) / 180) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    return R * c; // 距離 (km)
   };
 
+  // Firebaseからメッセージを監視
   useEffect(() => {
-    if (navigator.geolocation) {
+    const messageRef = ref(database, "messages/current"); // Realtime Database のパス
+
+    const unsubscribe = onValue(messageRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data?.text) {
+        setMessage(data.text); // Firebaseからのメッセージを状態にセット
+      }
+    });
+
+    return () => unsubscribe(); // クリーンアップ
+  }, []);
+
+  // ジオフェンス監視
+  useEffect(() => {
+    if ("geolocation" in navigator) {
       const watcher = navigator.geolocation.watchPosition(
-        async (position) => {
+        (position) => {
           const { latitude, longitude } = position.coords;
+
+          // 距離を計算
           const distance = calculateDistance(
             latitude,
             longitude,
@@ -37,46 +55,57 @@ export default function Geofence() {
             targetLongitude
           );
 
-          if (distance <= targetRadius && !inGeofence) {
-            setMessage(dynamicMessage);
-            setInGeofence(true);
+          console.log(`現在の距離: ${distance.toFixed(2)}km`);
 
-            // バイブレーション
+          const isInRange = distance <= targetRadius;
+
+          // ジオフェンス内外の状態を更新
+          if (isInRange && !inGeofence) {
+            setInGeofence(true);
+            setMessage("指定エリア内に入りました"); // エリア内に入った場合メッセージを更新
+
+            // バイブレーションで通知
             if (navigator.vibrate) {
               navigator.vibrate([200, 100, 200]);
             }
-
-            // SwitchBot Botの操作
-            const deviceMac = "D3:6E:6C:CA:81:2E";
-            await controlSwitchBotBot(deviceMac, "press");
-
-          } else if (distance > targetRadius && inGeofence) {
-            setMessage("");
+          } else if (!isInRange && inGeofence) {
             setInGeofence(false);
+            setMessage(""); // エリア外に出た場合メッセージをクリア
           }
         },
         (error) => {
-          console.error("位置情報の取得に失敗しました: ", error);
+          console.error("位置情報の取得に失敗しました:", error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0,
         }
       );
 
       return () => {
-        navigator.geolocation.clearWatch(watcher);
+        navigator.geolocation.clearWatch(watcher); // クリーンアップ
       };
     } else {
       console.error("このブラウザはGeolocation APIをサポートしていません。");
     }
-  }, [inGeofence, dynamicMessage]);
+  }, [inGeofence]);
 
   return (
     <div className={styles.container}>
       {message ? (
-        <p className={styles.message}>{message}</p>
+        <div className={styles.messageContainer}>
+          <p className={styles.message}>{message}</p>
+        </div>
       ) : (
-        <img src="/coco.jpg" alt="Coco" className={styles.image} />
+        <div className={styles.imageContainer}>
+          <img
+            src="/coco.jpg"
+            alt="Coco"
+            className={styles.image}
+          />
+        </div>
       )}
-      {/* ユーザー操作でBluetoothスキャンを開始 */}
-      <button id="startBluetoothBtn">Start Bluetooth Scanning</button>
     </div>
   );
 }

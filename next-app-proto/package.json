@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@abandonware/noble": "^1.9.2-25",
+    "firebase": "^11.0.2",
+    "googleapis": "^144.0.0",
     "next": "^15.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

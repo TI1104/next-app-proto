@@ -1,16 +1,25 @@
-import { useMessage } from "../../context/MessageContext";
+import React, { useState } from "react";
+import { FirebaseController } from "../../lib/firebaseFunctions";  // FirebaseController をインポート
 
-export default function Care() {
-  const { message, setMessage } = useMessage();
+export default function Parent() {
+  const [message, setMessage] = useState("");
 
-  const handleInputChange = (e) => {
-    setMessage(e.target.value);
+  const handleInputChange = async (e) => {
+    const newMessage = e.target.value;
+    setMessage(newMessage);
+
+    // Firestoreにメッセージを保存
+    const result = await FirebaseController.writeMessage(newMessage);
+    if (result) {
+      console.log("メッセージが正常に保存されました");
+    } else {
+      console.log("メッセージ保存に失敗しました");
+    }
   };
 
   return (
     <div style={{ textAlign: "center", marginTop: "2rem" }}>
-      <h2>介護対象用ページ</h2>
-      <p>現在のメッセージ: {message}</p>
+      <h2>管理者用ページ</h2>
       <input
         type="text"
         value={message}
