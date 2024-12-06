@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useMessage } from "../../context/MessageContext"; // useMessage をインポート
 import { ref, onValue } from "firebase/database"; // Firebase Realtime Database の関数
 import { database } from "../../lib/firebaseConfig"; // Firebase Config のインポート
 import styles from "../../styles/Home.module.css";
 
 export default function Geofence() {
+  const { message: dynamicMessage } = useMessage(); // useMessage を使って dynamicMessage を取得
   const [message, setMessage] = useState(""); // Firebaseからのメッセージを管理
   const [inGeofence, setInGeofence] = useState(false); // ジオフェンスの状態を管理
 
@@ -62,7 +64,9 @@ export default function Geofence() {
           // ジオフェンス内外の状態を更新
           if (isInRange && !inGeofence) {
             setInGeofence(true);
-            setMessage("指定エリア内に入りました"); // エリア内に入った場合メッセージを更新
+
+            // Firebaseからのメッセージを更新
+            setMessage(dynamicMessage); // 取得した動的メッセージを表示
 
             // バイブレーションで通知
             if (navigator.vibrate) {
@@ -70,7 +74,7 @@ export default function Geofence() {
             }
           } else if (!isInRange && inGeofence) {
             setInGeofence(false);
-            setMessage(""); // エリア外に出た場合メッセージをクリア
+            setMessage(""); // エリア外に出た場合、メッセージをクリア
           }
         },
         (error) => {
@@ -89,7 +93,7 @@ export default function Geofence() {
     } else {
       console.error("このブラウザはGeolocation APIをサポートしていません。");
     }
-  }, [inGeofence]);
+  }, [inGeofence, dynamicMessage]); // dynamicMessageを依存配列に追加
 
   return (
     <div className={styles.container}>
