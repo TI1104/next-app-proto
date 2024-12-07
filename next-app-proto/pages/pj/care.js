@@ -1,22 +1,18 @@
 import { useState, useEffect } from "react";
-import { useMessage } from "../../context/MessageContext"; // useMessage をインポート
-import { ref, onValue } from "firebase/database"; // Firebase Realtime Database の関数
-import { database } from "../../lib/firebaseConfig"; // Firebase Config のインポート
+import { doc, onSnapshot } from "firebase/firestore"; // Firestoreのリアルタイム取得
+import { db } from "../../lib/firebaseConfig";
 import styles from "../../styles/Home.module.css";
 
 export default function Geofence() {
-  const { message: dynamicMessage } = useMessage(); // useMessage を使って dynamicMessage を取得
-  const [message, setMessage] = useState(""); // Firebaseからのメッセージを管理
-  const [inGeofence, setInGeofence] = useState(false); // ジオフェンスの状態を管理
+  const [message, setMessage] = useState("");
+  const [inGeofence, setInGeofence] = useState(false);
 
-  // ターゲット地点と半径
-  const targetLatitude = 36.703437; // ターゲット地点の緯度
-  const targetLongitude = 137.101312; // ターゲット地点の経度
-  const targetRadius = 1.0; // 半径（km）
+  const targetLatitude = 36.703437;
+  const targetLongitude = 137.101312;
+  const targetRadius = 2;
 
-  // 距離計算関数
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // 地球の半径（km）
+    const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
@@ -25,31 +21,33 @@ export default function Geofence() {
         Math.cos((lat2 * Math.PI) / 180) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // 距離 (km)
+    return R * c;
   };
 
-  // Firebaseからメッセージを監視
+  // Firestoreからリアルタイムでメッセージを取得
   useEffect(() => {
-    const messageRef = ref(database, "messages/current"); // Realtime Database のパス
-
-    const unsubscribe = onValue(messageRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data?.text) {
-        setMessage(data.text); // Firebaseからのメッセージを状態にセット
+    const docRef = doc(db, "messages", "currentMessage"); // Firestoreのドキュメントパス
+    const unsubscribe = onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data?.text) {
+          setMessage(data.text);
+          console.log("Firestoreメッセージ:", data.text);
+        }
+      } else {
+        console.warn("ドキュメントが存在しません");
       }
     });
 
-    return () => unsubscribe(); // クリーンアップ
+    return () => unsubscribe(); // クリーンアップ時に購読解除
   }, []);
 
-  // ジオフェンス監視
+  // ジオフェンスの監視
   useEffect(() => {
     if ("geolocation" in navigator) {
       const watcher = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-
-          // 距離を計算
           const distance = calculateDistance(
             latitude,
             longitude,
@@ -61,39 +59,29 @@ export default function Geofence() {
 
           const isInRange = distance <= targetRadius;
 
-          // ジオフェンス内外の状態を更新
           if (isInRange && !inGeofence) {
             setInGeofence(true);
-
-            // Firebaseからのメッセージを更新
-            setMessage(dynamicMessage); // 取得した動的メッセージを表示
-
-            // バイブレーションで通知
+            console.log("ジオフェンス内");
             if (navigator.vibrate) {
               navigator.vibrate([200, 100, 200]);
             }
           } else if (!isInRange && inGeofence) {
             setInGeofence(false);
-            setMessage(""); // エリア外に出た場合、メッセージをクリア
+            setMessage(""); // ジオフェンス外ではメッセージをクリア
+            console.log("ジオフェンス外");
           }
         },
         (error) => {
           console.error("位置情報の取得に失敗しました:", error);
         },
-        {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0,
-        }
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
 
-      return () => {
-        navigator.geolocation.clearWatch(watcher); // クリーンアップ
-      };
+      return () => navigator.geolocation.clearWatch(watcher);
     } else {
       console.error("このブラウザはGeolocation APIをサポートしていません。");
     }
-  }, [inGeofence, dynamicMessage]); // dynamicMessageを依存配列に追加
+  }, [inGeofence]);
 
   return (
     <div className={styles.container}>
