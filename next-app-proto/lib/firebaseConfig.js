@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore"; // Firestore をインポート
-import { getDatabase } from "firebase/database"; // Realtime Databaseをインポート
+//import { getDatabase } from "firebase/database"; // Realtime Databaseをインポート
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -20,6 +20,6 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // Realtime Database インスタンスを取得
-const database = getDatabase(app);
+//const database = getDatabase(app);
 
-export { db, database };  // db と database をエクスポート
+export { db };  // db と database をエクスポート
