@@ -2,15 +2,22 @@ import { useState, useEffect } from "react";
 import { doc, onSnapshot } from "firebase/firestore"; // Firestoreのリアルタイム取得
 import { db } from "../../lib/firebaseConfig";
 import styles from "../../styles/Home.module.css";
+import axios from "axios"; // SwitchBot APIリクエスト用
 
 export default function Geofence() {
   const [message, setMessage] = useState("");
   const [inGeofence, setInGeofence] = useState(false);
 
+  // ジオフェンスの設定
   const targetLatitude = 36.703437;
   const targetLongitude = 137.101312;
-  const targetRadius = 2;
+  const targetRadius = 1;
 
+  // SwitchBot API設定
+  const API_TOKEN = process.env.NEXT_PUBLIC_SWITCHBOT_TOKEN; // .envから取得
+  const DEVICE_ID = process.env.NEXT_PUBLIC_SWITCHBOT_DEVICE_ID;
+
+  // 距離計算関数
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -22,6 +29,22 @@ export default function Geofence() {
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
+  };
+
+  // SwitchBot Botを操作する関数
+  const sendSwitchBotCommand = async () => {
+    try {
+      const response = await axios.post("/api/switchbot", {
+        deviceId: DEVICE_ID, // .envから取得したデバイスID
+        command: "press", // 実行するコマンド
+      });
+      console.log("SwitchBot Bot command sent successfully:", response.data);
+    } catch (error) {
+      console.error(
+        "Failed to send SwitchBot Bot command:",
+        error.response?.data || error.message
+      );
+    }
   };
 
   // Firestoreからリアルタイムでメッセージを取得
@@ -62,9 +85,9 @@ export default function Geofence() {
           if (isInRange && !inGeofence) {
             setInGeofence(true);
             console.log("ジオフェンス内");
-            if (navigator.vibrate) {
-              navigator.vibrate([200, 100, 200]);
-            }
+
+            // ジオフェンス内でSwitchBot Botを操作
+            sendSwitchBotCommand();
           } else if (!isInRange && inGeofence) {
             setInGeofence(false);
             setMessage(""); // ジオフェンス外ではメッセージをクリア
@@ -91,11 +114,7 @@ export default function Geofence() {
         </div>
       ) : (
         <div className={styles.imageContainer}>
-          <img
-            src="/coco.jpg"
-            alt="Coco"
-            className={styles.image}
-          />
+          <img src="/coco.jpg" alt="Coco" className={styles.image} />
         </div>
       )}
     </div>
