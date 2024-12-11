@@ -23,8 +23,15 @@ export default async function handler(req, res) {
       );
       res.status(200).json(response.data);
     } catch (error) {
-      console.error("SwitchBot API Error:", error.response?.data || error.message);
-      res.status(500).json({ error: "Failed to send command to SwitchBot" });
+      console.error("SwitchBot API Error:", {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message,
+      });
+      res.status(500).json({
+        error: error.response?.data || "Failed to send command to SwitchBot",
+        details: error.message,
+      });
     }
   } else {
     res.setHeader("Allow", ["POST"]);
