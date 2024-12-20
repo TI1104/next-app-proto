@@ -7,11 +7,12 @@ import axios from "axios"; // SwitchBot APIリクエスト用
 export default function Geofence() {
   const [message, setMessage] = useState("");
   const [inGeofence, setInGeofence] = useState(false);
+  const [switchBotTriggered, setSwitchBotTriggered] = useState(false); // SwitchBot動作管理
 
   // ジオフェンスの設定
   const targetLatitude = 36.703437;
   const targetLongitude = 137.101312;
-  const targetRadius = 1;
+  const targetRadius = 0.1;
 
   // SwitchBot API設定
   const API_TOKEN = process.env.NEXT_PUBLIC_SWITCHBOT_TOKEN; // .envから取得
@@ -35,8 +36,8 @@ export default function Geofence() {
   const sendSwitchBotCommand = async () => {
     try {
       const response = await axios.post("/api/switchbot", {
-        deviceId: DEVICE_ID, // .envから取得したデバイスID
-        command: "press", // 実行するコマンド
+        deviceId: DEVICE_ID,
+        command: "press",
       });
       console.log("SwitchBot Bot command sent successfully:", response.data);
     } catch (error) {
@@ -87,9 +88,19 @@ export default function Geofence() {
             console.log("ジオフェンス内");
 
             // ジオフェンス内でSwitchBot Botを操作
-            sendSwitchBotCommand();
+            if (!switchBotTriggered) {
+              setSwitchBotTriggered(true); // 動作フラグを設定
+              sendSwitchBotCommand();
+
+              // 8秒後にもう一度SwitchBotを動作させる
+              setTimeout(() => {
+                sendSwitchBotCommand();
+                console.log("8秒後にSwitchBotを再度動作させました");
+              }, 8000);
+            }
           } else if (!isInRange && inGeofence) {
             setInGeofence(false);
+            setSwitchBotTriggered(false); // フラグをリセット
             setMessage(""); // ジオフェンス外ではメッセージをクリア
             console.log("ジオフェンス外");
           }
@@ -104,7 +115,7 @@ export default function Geofence() {
     } else {
       console.error("このブラウザはGeolocation APIをサポートしていません。");
     }
-  }, [inGeofence]);
+  }, [inGeofence, switchBotTriggered]);
 
   return (
     <div className={styles.container}>
