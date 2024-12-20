@@ -196,3 +196,26 @@ a.secondary {
   margin-top: 20px;
 }
 
+.message {
+  font-size: 2rem; /* デフォルトサイズ */
+  color: #333;
+  font-weight: bold;
+}
+
+@media (max-width: 600px) {
+  .message {
+    font-size: 3rem; /* 小さい端末用の大きな文字サイズ */
+  }
+}
+
+@media (min-width: 601px) and (max-width: 1200px) {
+  .message {
+    font-size: 5rem; /* 中型端末用 */
+  }
+}
+
+@media (min-width: 1201px) {
+  .message {
+    font-size: 7rem; /* 大型端末用 */
+  }
+}
